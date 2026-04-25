@@ -1,6 +1,6 @@
-# BiteBetter
+# BetterBites
 
-An AI-powered personalized recipe transformation app. Paste any recipe, and BiteBetter rewrites it around your allergies, dietary preferences, health goals, budget, and safety needs.
+A personalized recipe transformation app. Paste any recipe, and BetterBites rewrites it around your allergies, dietary preferences, health goals, budget, and safety needs.
 
 ---
 
@@ -8,7 +8,7 @@ An AI-powered personalized recipe transformation app. Paste any recipe, and Bite
 
 Users create a nutrition profile once. Then, in the Chef tab, they paste or type any recipe. The app transforms it into a personalized version and shows a simplified result — ingredient swaps, before/after nutrition, scores, cost summary, and safety warnings. Transformed recipes can be saved, rated, and aggregated into a grocery list.
 
-> This app is not medical advice or a medical diagnostic tool. For high-risk concerns (pregnancy, medications, severe allergies, medical conditions), consult a doctor or healthcare professional.
+> BetterBites is not medical advice or a medical diagnostic tool. For high-risk concerns (pregnancy, medications, severe allergies, medical conditions), consult a doctor or healthcare professional.
 
 ---
 

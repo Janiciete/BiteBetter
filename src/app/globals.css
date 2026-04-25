@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+:root {
+  --color-deep-teal: #2F5D62;
+  --color-soft-sage: #A9C9A4;
+  --color-light-mint: #EEF6F0;
+  --color-warm-coral: #F4A07A;
+  --color-soft-peach: #F9D7C3;
+  --color-warm-off-white: #FAF8F3;
+  --color-readable: #253238;
+  --color-card: #FFFFFF;
+}
+
+@layer base {
+  body {
+    background-color: #FAF8F3;
+    color: #253238;
+  }
+
+  :focus-visible {
+    outline: 2px solid #2F5D62;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}

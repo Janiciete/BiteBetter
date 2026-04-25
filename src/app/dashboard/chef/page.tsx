@@ -330,7 +330,7 @@ export default function ChefPage() {
         </div>
         <h2 className="text-xl font-bold text-gray-900">Create your nutrition profile first</h2>
         <p className="text-sm text-gray-500 max-w-sm">
-          BiteBetter personalizes every recipe transformation based on your goals, allergies, and health background.
+          BetterBites personalizes every recipe transformation based on your goals, allergies, and health background.
         </p>
         <Link
           href="/onboarding"
@@ -389,7 +389,7 @@ export default function ChefPage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
-              Personalizing your recipe with BiteBetter AI…
+              Personalizing your recipe with BetterBites AI…
             </>
           ) : (
             "Transform Recipe"

@@ -220,7 +220,7 @@ export default function WhyThisPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Why This?</h1>
           <p className="text-gray-500 mt-1">
-            Understand why BiteBetter changed your recipe.
+            Understand why BetterBites changed your recipe.
           </p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center space-y-4">
@@ -228,7 +228,7 @@ export default function WhyThisPage() {
             No recipe explanations yet.
           </p>
           <p className="text-sm text-gray-500">
-            Transform and save a recipe in Chef to see why BiteBetter made each
+            Transform and save a recipe in Chef to see why BetterBites made each
             change.
           </p>
           <Link
@@ -248,7 +248,7 @@ export default function WhyThisPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Why This?</h1>
         <p className="text-gray-500 mt-1">
-          Understand why BiteBetter changed your recipe.
+          Understand why BetterBites changed your recipe.
         </p>
       </div>
 
@@ -489,7 +489,7 @@ export default function WhyThisPage() {
                   ? "Nutrition values use USDA FoodData Central where matches were available."
                   : selected.nutritionSource === "fatsecret"
                   ? "Nutrition values use FatSecret where matches were available."
-                  : "Nutrition values are estimated from BiteBetter's demo nutrition rules."}
+                  : "Nutrition values are estimated from BetterBites's demo nutrition rules."}
               </p>
             </div>
           </Section>

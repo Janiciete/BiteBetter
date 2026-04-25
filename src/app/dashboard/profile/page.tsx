@@ -134,7 +134,7 @@ export default function ProfilePage() {
         </div>
         <h1 className="text-xl font-bold text-gray-900">No profile yet</h1>
         <p className="text-sm text-gray-500 max-w-sm">
-          Create your nutrition profile so BiteBetter can personalize every recipe
+          Create your nutrition profile so BetterBites can personalize every recipe
           transformation for you.
         </p>
         <Link

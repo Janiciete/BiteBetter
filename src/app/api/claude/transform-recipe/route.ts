@@ -84,7 +84,7 @@ Nutrition per serving (before → after):
   Added sugar: ${b.added_sugar_g} → ${a.added_sugar_g} g
   Fiber: ${b.fiber_g} → ${a.fiber_g} g`;
 
-  const systemPrompt = `You are a professional recipe transformation assistant for BiteBetter, a personalized nutrition app.
+  const systemPrompt = `You are a professional recipe transformation assistant for BetterBites, a personalized nutrition app.
 Improve the rule-based recipe transformation provided to make it more helpful, natural, and aligned with the user's profile.
 
 You MUST return ONLY a valid JSON object — no markdown, no code fences, no extra text.
