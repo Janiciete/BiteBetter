@@ -163,6 +163,46 @@ Grocery list is derived client-side from saved recipe ingredients — no separat
 
 ---
 
+## Supabase Setup
+
+1. Create a Supabase project at [supabase.com](https://supabase.com).
+
+2. Create `.env.local` in the project root (do **not** commit this file):
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+   ```
+
+3. Run the following SQL in the Supabase SQL editor:
+
+```sql
+create table if not exists profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null unique,
+  profile jsonb not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists recipes (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null,
+  recipe jsonb not null,
+  rating int,
+  feedback jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+```
+
+**Notes:**
+- `.env.local` is gitignored — never commit it.
+- This MVP uses a hard-coded `demo-user` ID and has no authentication.
+- Before going to production, add Supabase Auth and enable Row Level Security (RLS) so each user only sees their own data.
+- If `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are missing, the app falls back to localStorage-only mode automatically.
+
+---
+
 ## What Is Simulated in the MVP
 
 | Feature | MVP Approach | Future |

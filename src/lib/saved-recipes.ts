@@ -4,6 +4,14 @@ import type {
   RecipeFeedback,
   GroceryChecklistItem,
 } from "@/types/recipe";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  saveRecipeToSupabase,
+  getRecipesFromSupabase,
+  deleteRecipeFromSupabase,
+  updateRecipeRatingInSupabase,
+  updateRecipeFeedbackInSupabase,
+} from "@/lib/supabase/storage";
 
 const RECIPES_KEY = "bitebetter_saved_recipes";
 const CHECKED_KEY = "bitebetter_grocery_checked_items";
@@ -134,4 +142,64 @@ export function getAggregatedGroceryItems(): GroceryChecklistItem[] {
   return Array.from(map.values()).sort((a, b) =>
     a.name.localeCompare(b.name)
   );
+}
+
+// ─── Supabase-aware helpers ────────────────────────────────────────────────
+
+export async function saveRecipeEverywhere(
+  recipe: TransformedRecipe,
+  originalText: string
+): Promise<{ saved: SavedRecipe; synced: boolean }> {
+  const saved = saveRecipe(recipe, originalText);
+  let synced = false;
+  if (isSupabaseConfigured) {
+    synced = await saveRecipeToSupabase(saved);
+  }
+  return { saved, synced };
+}
+
+export async function getSavedRecipesFromSupabaseAndSync(): Promise<SavedRecipe[]> {
+  if (!isSupabaseConfigured) return getSavedRecipes();
+  const remote = await getRecipesFromSupabase();
+  if (!remote) return getSavedRecipes();
+
+  const local = getSavedRecipes();
+  const merged = new Map<string, SavedRecipe>();
+  for (const r of local) merged.set(r.id, r);
+  for (const r of remote) merged.set(r.id, r);
+
+  const sorted = Array.from(merged.values()).sort(
+    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+  );
+  if (typeof window !== "undefined") {
+    localStorage.setItem(RECIPES_KEY, JSON.stringify(sorted));
+  }
+  return sorted;
+}
+
+export async function deleteSavedRecipeEverywhere(id: string): Promise<void> {
+  deleteSavedRecipe(id);
+  if (isSupabaseConfigured) {
+    await deleteRecipeFromSupabase(id);
+  }
+}
+
+export async function updateRecipeRatingEverywhere(
+  id: string,
+  rating: number
+): Promise<void> {
+  updateRecipeRating(id, rating);
+  if (isSupabaseConfigured) {
+    await updateRecipeRatingInSupabase(id, rating);
+  }
+}
+
+export async function updateRecipeFeedbackEverywhere(
+  id: string,
+  feedback: RecipeFeedback
+): Promise<void> {
+  updateRecipeFeedback(id, feedback);
+  if (isSupabaseConfigured) {
+    await updateRecipeFeedbackInSupabase(id, feedback);
+  }
 }

@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getSavedRecipes, deleteSavedRecipe } from "@/lib/saved-recipes";
+import {
+  getSavedRecipes,
+  deleteSavedRecipeEverywhere,
+  getSavedRecipesFromSupabaseAndSync,
+} from "@/lib/saved-recipes";
 import { MEDICAL_DISCLAIMER } from "@/lib/safety";
 import type { SavedRecipe, RecipeWarning } from "@/types/recipe";
 
@@ -302,6 +306,9 @@ export default function RecipesPage() {
   useEffect(() => {
     setRecipes(getSavedRecipes());
     setLoaded(true);
+    getSavedRecipesFromSupabaseAndSync()
+      .then((synced) => setRecipes(synced))
+      .catch(console.warn);
   }, []);
 
   function toggleExpand(id: string) {
@@ -314,13 +321,13 @@ export default function RecipesPage() {
   }
 
   function handleDelete(id: string) {
-    deleteSavedRecipe(id);
     setRecipes((prev) => prev.filter((r) => r.id !== id));
     setExpandedIds((prev) => {
       const next = new Set(prev);
       next.delete(id);
       return next;
     });
+    deleteSavedRecipeEverywhere(id).catch(console.warn);
   }
 
   if (!loaded) return null;

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { calculateBMI, getBMICategory, calculateSimpleEER } from "@/lib/bmi";
+import { saveProfileToSupabase } from "@/lib/supabase/storage";
 import type {
   ActivityLevel,
   Allergy,
@@ -380,6 +381,9 @@ export default function OnboardingPage() {
     };
 
     localStorage.setItem("bitebetter_profile", JSON.stringify(profile));
+    saveProfileToSupabase(profile).catch((e) =>
+      console.warn("Supabase profile sync failed:", e)
+    );
     router.push("/dashboard/chef");
   }
 

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { BMICategory, UserProfile } from "@/types/profile";
+import { getProfileFromSupabase } from "@/lib/supabase/storage";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -97,6 +99,17 @@ export default function ProfilePage() {
       // malformed data
     }
     setLoaded(true);
+
+    if (isSupabaseConfigured) {
+      getProfileFromSupabase()
+        .then((remote) => {
+          if (remote) {
+            setProfile(remote);
+            localStorage.setItem("bitebetter_profile", JSON.stringify(remote));
+          }
+        })
+        .catch((e) => console.warn("Supabase profile fetch failed:", e));
+    }
   }, []);
 
   if (!loaded) return null;

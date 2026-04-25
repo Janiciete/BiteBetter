@@ -6,10 +6,11 @@ import { parseRecipe } from "@/lib/recipe-parser";
 import { transformRecipe } from "@/lib/recipe-transformer";
 import { MEDICAL_DISCLAIMER } from "@/lib/safety";
 import {
-  saveRecipe as saveRecipeToStorage,
-  updateRecipeRating,
-  updateRecipeFeedback,
+  saveRecipeEverywhere,
+  updateRecipeRatingEverywhere,
+  updateRecipeFeedbackEverywhere,
 } from "@/lib/saved-recipes";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import type { UserProfile } from "@/types/profile";
 import type { TransformedRecipe, RecipeWarning, RecipeFeedback } from "@/types/recipe";
 
@@ -222,6 +223,7 @@ export default function ChefPage() {
   // Save + feedback state
   const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [cloudSynced, setCloudSynced] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState<RecipeFeedback>(EMPTY_FEEDBACK);
@@ -249,6 +251,7 @@ export default function ChefPage() {
     setShowDetails(false);
     setSaveStatus("idle");
     setSavedRecipeId(null);
+    setCloudSynced(false);
     setFeedbackSubmitted(false);
     setRating(0);
     setFeedback(EMPTY_FEEDBACK);
@@ -270,28 +273,29 @@ export default function ChefPage() {
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!result || saveStatus === "saved") return;
     setSaveStatus("saving");
     try {
-      const saved = saveRecipeToStorage(result, recipeText);
+      const { saved, synced } = await saveRecipeEverywhere(result, recipeText);
       setSavedRecipeId(saved.id);
+      setCloudSynced(synced);
       setSaveStatus("saved");
     } catch {
       setSaveStatus("idle");
     }
   }
 
-  function handleSubmitFeedback() {
+  async function handleSubmitFeedback() {
     if (!savedRecipeId) return;
-    if (rating > 0) updateRecipeRating(savedRecipeId, rating);
+    if (rating > 0) await updateRecipeRatingEverywhere(savedRecipeId, rating);
     const hasFeedback =
       feedback.wouldMakeAgain !== null ||
       feedback.badSwaps.trim().length > 0 ||
       feedback.tooExpensive !== null ||
       feedback.easyToFollow !== null ||
       feedback.notes.trim().length > 0;
-    if (hasFeedback) updateRecipeFeedback(savedRecipeId, feedback);
+    if (hasFeedback) await updateRecipeFeedbackEverywhere(savedRecipeId, feedback);
     setFeedbackSubmitted(true);
   }
 
@@ -654,7 +658,13 @@ export default function ChefPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-emerald-800">Recipe saved to Recipes and Grocery List.</p>
-                    <p className="text-xs text-emerald-600 mt-0.5">You can rate it and view it from the Recipes tab.</p>
+                    <p className="text-xs text-emerald-600 mt-0.5">
+                      {isSupabaseConfigured
+                        ? cloudSynced
+                          ? "Saved and synced."
+                          : "Saved locally. Cloud sync unavailable."
+                        : "You can rate it and view it from the Recipes tab."}
+                    </p>
                   </div>
                 </div>
                 <Link
