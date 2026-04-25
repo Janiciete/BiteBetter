@@ -56,6 +56,7 @@ export function saveRecipe(
     costPerServing: recipe.costPerServing,
     disclaimerRequired: recipe.disclaimerRequired,
     missingInfoQuestions: recipe.missingInfoQuestions,
+    nutritionSource: recipe.nutritionSource,
   };
   const existing = getSavedRecipes();
   existing.unshift(saved);

@@ -208,8 +208,27 @@ create table if not exists recipes (
 | Feature | MVP Approach | Future |
 |---|---|---|
 | Recipe parsing | Regex line splitting | NLP / Claude parsing |
-| Nutrition estimates | Static lookup table | USDA API |
+| Nutrition estimates | USDA FoodData Central (static JSON fallback) | Real-time USDA with better matching |
 | Grocery prices | `grocery-prices.json` flat file | Real grocery API |
 | Taste Score | Formula based on substitution count | User rating feedback loop |
 | Personalization from ratings | Not yet implemented | Feed ratings back to transformer |
-| Why This? explanations | Static change-reason bullets | Claude-generated |
+| Why This? explanations | Dynamic per-recipe explanations | Claude-generated deep analysis |
+
+---
+
+## USDA FoodData Central Setup
+
+Nutrition estimates use the [USDA FoodData Central API](https://fdc.nal.usda.gov/) when a key is available, and fall back to the built-in `nutrition-rules.json` table automatically.
+
+1. Get a free API key at [fdc.nal.usda.gov/api-guide.html](https://fdc.nal.usda.gov/api-guide.html).
+
+2. Add to `.env.local` (do **not** commit this file):
+   ```
+   USDA_API_KEY=your_key_here
+   ```
+
+3. The app uses USDA data when available and silently falls back to the static JSON if the key is missing, USDA is unreachable, or fewer than 2 ingredients can be matched.
+
+4. Looked-up ingredient nutrition is cached in `localStorage` (`bitebetter_usda_cache`) to avoid redundant API calls.
+
+**Important:** `USDA_API_KEY` is read only in server-side API routes. Never use `NEXT_PUBLIC_` for this key.

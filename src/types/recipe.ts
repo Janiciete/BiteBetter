@@ -28,6 +28,7 @@ export interface SavedRecipe {
   costPerServing: number;
   disclaimerRequired: boolean;
   missingInfoQuestions: string[];
+  nutritionSource?: "usda" | "static";
   rating?: number;
   feedback?: RecipeFeedback;
 }
@@ -116,4 +117,5 @@ export interface TransformedRecipe {
   costPerServing: number;
   disclaimerRequired: boolean;
   missingInfoQuestions: string[];
+  nutritionSource?: "usda" | "static";
 }
