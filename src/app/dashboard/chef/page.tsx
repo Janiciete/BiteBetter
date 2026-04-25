@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { parseRecipe } from "@/lib/recipe-parser";
 import { transformRecipe } from "@/lib/recipe-transformer";
+import { transformRecipeWithClaude } from "@/lib/claude-transform";
 import { MEDICAL_DISCLAIMER } from "@/lib/safety";
 import {
   saveRecipeEverywhere,
@@ -216,6 +217,7 @@ export default function ChefPage() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [recipeText, setRecipeText] = useState("");
   const [result, setResult] = useState<TransformedRecipe | null>(null);
+  const [usedClaude, setUsedClaude] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -248,6 +250,7 @@ export default function ChefPage() {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setUsedClaude(null);
     setShowDetails(false);
     setSaveStatus("idle");
     setSavedRecipeId(null);
@@ -260,8 +263,18 @@ export default function ChefPage() {
 
     try {
       const parsed = parseRecipe(recipeText);
-      const transformed = transformRecipe(recipeText, parsed, profile);
-      setResult(transformed);
+      const ruleBasedResult = transformRecipe(recipeText, parsed, profile);
+
+      const claudeResult = await transformRecipeWithClaude({
+        rawRecipeText: recipeText,
+        parsedRecipe: parsed,
+        userProfile: profile,
+        ruleBasedResult,
+      });
+
+      const finalResult = claudeResult ?? ruleBasedResult;
+      setUsedClaude(claudeResult !== null);
+      setResult(finalResult);
       setTimeout(
         () => document.getElementById("result-top")?.scrollIntoView({ behavior: "smooth" }),
         50
@@ -369,7 +382,7 @@ export default function ChefPage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
-              Personalizing your recipe…
+              Personalizing your recipe with BiteBetter AI…
             </>
           ) : (
             "Transform Recipe"
@@ -384,7 +397,19 @@ export default function ChefPage() {
           {/* Name + overall score */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">Personalized Recipe</p>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Personalized Recipe</p>
+                {usedClaude === true && (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                    ✦ Generated with Claude
+                  </span>
+                )}
+                {usedClaude === false && (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                    Rule-based fallback
+                  </span>
+                )}
+              </div>
               <h2 className="text-xl font-bold text-gray-900">{result.transformedRecipeName}</h2>
               <p className="text-sm text-gray-500 mt-1">
                 {result.servings} serving{result.servings !== 1 ? "s" : ""}
