@@ -1,0 +1,74 @@
+{
+  "allergy_triggers": {
+    "nuts": [
+      "almond", "almonds", "walnut", "walnuts", "pecan", "pecans", "cashew", "cashews",
+      "pistachio", "pistachios", "peanut", "peanuts", "hazelnut", "hazelnuts", "macadamia",
+      "nut butter", "almond butter", "peanut butter", "almond flour", "almond meal",
+      "mixed nuts", "pine nut", "pine nuts"
+    ],
+    "dairy": [
+      "milk", "whole milk", "skim milk", "2% milk", "butter", "cream", "heavy cream",
+      "whipping cream", "sour cream", "creme fraiche", "half and half",
+      "cheese", "parmesan", "mozzarella", "cheddar", "feta", "brie", "camembert",
+      "gouda", "ricotta", "cream cheese", "cottage cheese",
+      "yogurt", "yoghurt", "greek yogurt", "whey", "lactose", "ghee", "ice cream"
+    ],
+    "shellfish": [
+      "shrimp", "prawn", "prawns", "crab", "lobster", "crayfish", "langoustine",
+      "scallop", "scallops", "oyster", "oysters", "clam", "clams",
+      "mussel", "mussels", "squid", "calamari", "octopus"
+    ],
+    "eggs": [
+      "egg", "eggs", "egg yolk", "egg white", "whole egg"
+    ],
+    "soy": [
+      "tofu", "edamame", "miso", "tempeh", "soy milk", "soybean",
+      "soy sauce", "tamari", "textured vegetable protein", "tvp"
+    ],
+    "wheat": [
+      "flour", "all-purpose flour", "bread", "pasta", "spaghetti", "fettuccine", "penne",
+      "noodle", "noodles", "wheat", "semolina", "durum", "spelt", "bulgur",
+      "couscous", "cracker", "crackers", "breadcrumbs", "panko", "rye", "barley"
+    ],
+    "sesame": [
+      "sesame", "tahini", "sesame oil", "sesame seeds", "sesame paste"
+    ]
+  },
+  "pregnancy_warnings": {
+    "raw_fish": {
+      "triggers": ["sushi", "sashimi", "raw fish", "raw salmon", "raw tuna", "ceviche", "tartare", "poke bowl", "raw ahi"],
+      "message": "Raw fish is not recommended during pregnancy due to risk of listeria and parasites."
+    },
+    "raw_eggs": {
+      "triggers": ["raw egg", "runny yolk", "soft boiled", "hollandaise", "aioli", "caesar dressing", "sunny side up", "over easy"],
+      "message": "Undercooked eggs may carry Salmonella — ensure eggs are fully cooked during pregnancy."
+    },
+    "high_mercury_fish": {
+      "triggers": ["swordfish", "king mackerel", "tilefish", "shark", "bigeye tuna", "orange roughy", "tuna steak"],
+      "message": "High-mercury fish should be limited or avoided during pregnancy."
+    },
+    "unpasteurized_dairy": {
+      "triggers": ["raw milk", "unpasteurized", "blue cheese", "brie", "camembert", "roquefort", "gorgonzola", "stilton"],
+      "message": "Soft/mold-ripened cheeses and unpasteurized dairy may carry listeria — use pasteurized alternatives."
+    },
+    "deli_meats": {
+      "triggers": ["deli meat", "cold cuts", "salami", "prosciutto", "pastrami", "bologna", "hot dog", "lunchmeat"],
+      "message": "Deli meats and cold cuts should be heated until steaming to reduce listeria risk during pregnancy."
+    },
+    "alcohol": {
+      "triggers": ["wine", "beer", "spirits", "rum", "vodka", "brandy", "whiskey", "liqueur", "sake", "mirin", "wine sauce", "beer batter"],
+      "message": "Alcohol is not safe during pregnancy. Omit or substitute with non-alcoholic alternatives."
+    }
+  },
+  "high_sodium_ingredients": [
+    "soy sauce", "dark soy sauce", "fish sauce", "worcestershire sauce", "miso paste",
+    "miso", "capers", "anchovies", "anchovy paste", "pickles", "pickle",
+    "bouillon", "stock cube", "broth", "canned soup", "sodium", "salt"
+  ],
+  "high_sugar_ingredients": [
+    "sugar", "brown sugar", "powdered sugar", "confectioners sugar", "honey",
+    "maple syrup", "corn syrup", "agave", "agave nectar", "condensed milk",
+    "chocolate chips", "jam", "jelly", "candy", "molasses", "caramel sauce",
+    "simple syrup", "sweet sauce", "teriyaki sauce"
+  ]
+}
