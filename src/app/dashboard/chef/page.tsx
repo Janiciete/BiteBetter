@@ -5,15 +5,19 @@ import Link from "next/link";
 import { parseRecipe } from "@/lib/recipe-parser";
 import { transformRecipe } from "@/lib/recipe-transformer";
 import { MEDICAL_DISCLAIMER } from "@/lib/safety";
+import {
+  saveRecipe as saveRecipeToStorage,
+  updateRecipeRating,
+  updateRecipeFeedback,
+} from "@/lib/saved-recipes";
 import type { UserProfile } from "@/types/profile";
-import type { TransformedRecipe, RecipeWarning } from "@/types/recipe";
+import type { TransformedRecipe, RecipeWarning, RecipeFeedback } from "@/types/recipe";
 
-// ─── Tiny helpers ─────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────
 
 function fmt(s: string) {
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
 function scoreColor(n: number): string {
   if (n >= 80) return "text-emerald-600";
   if (n >= 60) return "text-amber-500";
@@ -29,6 +33,14 @@ function warnBg(level: RecipeWarning["level"]): string {
   if (level === "caution") return "bg-amber-50 border-amber-200 text-amber-700";
   return "bg-blue-50 border-blue-200 text-blue-700";
 }
+
+const EMPTY_FEEDBACK: RecipeFeedback = {
+  wouldMakeAgain: null,
+  badSwaps: "",
+  tooExpensive: null,
+  easyToFollow: null,
+  notes: "",
+};
 
 const EXAMPLE_RECIPE = `Chicken Pasta Bake
 
@@ -56,7 +68,7 @@ Instructions:
 7. Combine pasta, chicken mixture, and spinach in a baking dish.
 8. Top with parmesan and bake for 20 minutes until golden.`;
 
-// ─── Nutrition row ─────────────────────────────────────────────────────────
+// ─── Sub-components ────────────────────────────────────────────────────────
 
 function NutritionRow({
   label,
@@ -75,22 +87,13 @@ function NutritionRow({
   const worsened = lowerIsBetter ? after > before + 0.5 : after < before - 0.5;
   const delta = after - before;
   const sign = delta >= 0 ? "+" : "";
-
   return (
     <tr className="border-b border-gray-50 last:border-0">
       <td className="py-2 pr-4 text-sm text-gray-500 w-36">{label}</td>
       <td className="py-2 pr-4 text-sm text-gray-700 text-right">{before}{unit}</td>
       <td className="py-2 pr-4 text-sm font-semibold text-gray-800 text-right">{after}{unit}</td>
       <td className="py-2 text-sm text-right font-medium">
-        <span
-          className={
-            improved
-              ? "text-emerald-600"
-              : worsened
-              ? "text-red-500"
-              : "text-gray-400"
-          }
-        >
+        <span className={improved ? "text-emerald-600" : worsened ? "text-red-500" : "text-gray-400"}>
           {sign}{Math.round(delta * 10) / 10}{unit}
           {improved ? " ↓" : worsened ? " ↑" : " →"}
         </span>
@@ -98,8 +101,6 @@ function NutritionRow({
     </tr>
   );
 }
-
-// ─── Score badge ───────────────────────────────────────────────────────────
 
 function ScoreBadge({ label, value }: { label: string; value: number }) {
   return (
@@ -110,12 +111,9 @@ function ScoreBadge({ label, value }: { label: string; value: number }) {
   );
 }
 
-// ─── Profile status card ────────────────────────────────────────────────────
-
 function ProfileStatusCard({ profile }: { profile: UserProfile }) {
   const goals = profile.nutritionGoals.slice(0, 3).map(fmt);
   const allergies = profile.allergies.filter((a) => a !== "other");
-
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2">
@@ -129,9 +127,7 @@ function ProfileStatusCard({ profile }: { profile: UserProfile }) {
       <div className="flex flex-wrap gap-1.5">
         {goals.length > 0 ? (
           goals.map((g) => (
-            <span key={g} className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-medium">
-              {g}
-            </span>
+            <span key={g} className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-medium">{g}</span>
           ))
         ) : (
           <span className="text-xs text-gray-400">No goals set</span>
@@ -143,13 +139,71 @@ function ProfileStatusCard({ profile }: { profile: UserProfile }) {
           <div className="flex flex-wrap gap-1.5">
             <span className="text-xs font-medium text-gray-500">Allergies:</span>
             {allergies.map((a) => (
-              <span key={a} className="text-xs bg-red-50 text-red-600 px-2.5 py-0.5 rounded-full font-medium">
-                {fmt(a)}
-              </span>
+              <span key={a} className="text-xs bg-red-50 text-red-600 px-2.5 py-0.5 rounded-full font-medium">{fmt(a)}</span>
             ))}
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function StarRatingInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          onMouseEnter={() => setHovered(star)}
+          onMouseLeave={() => setHovered(0)}
+        >
+          <svg
+            className={`w-7 h-7 transition-colors ${(hovered || value) >= star ? "text-amber-400" : "text-gray-200"}`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function YesNoToggle({
+  value,
+  onChange,
+}: {
+  value: boolean | null;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      {([true, false] as const).map((v) => (
+        <button
+          key={String(v)}
+          type="button"
+          onClick={() => onChange(v)}
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+            value === v
+              ? v
+                ? "bg-emerald-500 border-emerald-500 text-white"
+                : "bg-red-400 border-red-400 text-white"
+              : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+          }`}
+        >
+          {v ? "Yes" : "No"}
+        </button>
+      ))}
     </div>
   );
 }
@@ -164,6 +218,13 @@ export default function ChefPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Save + feedback state
+  const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [feedback, setFeedback] = useState<RecipeFeedback>(EMPTY_FEEDBACK);
 
   useEffect(() => {
     try {
@@ -186,16 +247,22 @@ export default function ChefPage() {
     setError(null);
     setResult(null);
     setShowDetails(false);
+    setSaveStatus("idle");
+    setSavedRecipeId(null);
+    setFeedbackSubmitted(false);
+    setRating(0);
+    setFeedback(EMPTY_FEEDBACK);
 
-    // Small delay so the loading state renders visibly
     await new Promise((r) => setTimeout(r, 350));
 
     try {
       const parsed = parseRecipe(recipeText);
       const transformed = transformRecipe(recipeText, parsed, profile);
       setResult(transformed);
-      // Scroll result into view
-      setTimeout(() => document.getElementById("result-top")?.scrollIntoView({ behavior: "smooth" }), 50);
+      setTimeout(
+        () => document.getElementById("result-top")?.scrollIntoView({ behavior: "smooth" }),
+        50
+      );
     } catch {
       setError("Something went wrong. Try repasting your recipe or use the example.");
     } finally {
@@ -203,7 +270,32 @@ export default function ChefPage() {
     }
   }
 
-  // ── No-profile state ────────────────────────────────────────────────────
+  function handleSave() {
+    if (!result || saveStatus === "saved") return;
+    setSaveStatus("saving");
+    try {
+      const saved = saveRecipeToStorage(result, recipeText);
+      setSavedRecipeId(saved.id);
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("idle");
+    }
+  }
+
+  function handleSubmitFeedback() {
+    if (!savedRecipeId) return;
+    if (rating > 0) updateRecipeRating(savedRecipeId, rating);
+    const hasFeedback =
+      feedback.wouldMakeAgain !== null ||
+      feedback.badSwaps.trim().length > 0 ||
+      feedback.tooExpensive !== null ||
+      feedback.easyToFollow !== null ||
+      feedback.notes.trim().length > 0;
+    if (hasFeedback) updateRecipeFeedback(savedRecipeId, feedback);
+    setFeedbackSubmitted(true);
+  }
+
+  // ── No-profile state ──────────────────────────────────────────────────────
   if (profileLoaded && !profile) {
     return (
       <div className="max-w-xl mx-auto mt-16 flex flex-col items-center text-center space-y-4">
@@ -214,7 +306,7 @@ export default function ChefPage() {
         </div>
         <h2 className="text-xl font-bold text-gray-900">Create your nutrition profile first</h2>
         <p className="text-sm text-gray-500 max-w-sm">
-          BiteBetter personalizes every recipe transformation based on your goals, allergies, and health background. Set up your profile to get started.
+          BiteBetter personalizes every recipe transformation based on your goals, allergies, and health background.
         </p>
         <Link
           href="/onboarding"
@@ -228,10 +320,9 @@ export default function ChefPage() {
 
   if (!profileLoaded) return null;
 
-  // ── Main view ───────────────────────────────────────────────────────────
+  // ── Main view ─────────────────────────────────────────────────────────────
   return (
     <div className="max-w-3xl mx-auto space-y-5 pb-12">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Chef</h1>
         <p className="text-gray-500 mt-1 text-sm">
@@ -239,7 +330,6 @@ export default function ChefPage() {
         </p>
       </div>
 
-      {/* Profile status */}
       {profile && <ProfileStatusCard profile={profile} />}
 
       {/* Input card */}
@@ -263,9 +353,7 @@ export default function ChefPage() {
           placeholder={"Paste or type your recipe here...\n\nIncludes:\n- Recipe name\n- Servings\n- Ingredients list\n- Instructions"}
           className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition-colors"
         />
-        {error && (
-          <p className="text-sm text-red-500 font-medium">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
         <button
           onClick={handleTransform}
           disabled={isLoading || !recipeText.trim()}
@@ -285,16 +373,14 @@ export default function ChefPage() {
         </button>
       </div>
 
-      {/* ── Results ─────────────────────────────────────────────────────── */}
+      {/* ── Results ────────────────────────────────────────────────────────── */}
       {result && (
         <div id="result-top" className="space-y-4">
 
-          {/* Header card: name + overall score */}
+          {/* Name + overall score */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">
-                Personalized Recipe
-              </p>
+              <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">Personalized Recipe</p>
               <h2 className="text-xl font-bold text-gray-900">{result.transformedRecipeName}</h2>
               <p className="text-sm text-gray-500 mt-1">
                 {result.servings} serving{result.servings !== 1 ? "s" : ""}
@@ -309,7 +395,7 @@ export default function ChefPage() {
             </div>
           </div>
 
-          {/* Before / after nutrition */}
+          {/* Nutrition before/after */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
               Nutrition per Serving <span className="text-gray-300 font-normal">(estimated)</span>
@@ -338,9 +424,7 @@ export default function ChefPage() {
           {/* Key changes */}
           {result.keyChanges.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Key Changes
-              </h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Key Changes</h3>
               <ul className="space-y-2">
                 {result.keyChanges.map((change, i) => (
                   <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
@@ -357,9 +441,7 @@ export default function ChefPage() {
           {/* Cost summary */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                Estimated Cost
-              </h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Estimated Cost</h3>
               <p className="text-2xl font-bold text-gray-900">${result.estimatedCost.toFixed(2)}</p>
               <p className="text-sm text-gray-400">${result.costPerServing.toFixed(2)} per serving</p>
             </div>
@@ -379,7 +461,7 @@ export default function ChefPage() {
             <div className="space-y-2">
               {result.warnings.map((w, i) => (
                 <div key={i} className={`rounded-xl border p-4 text-sm ${warnBg(w.level)}`}>
-                  <p>{w.message}</p>
+                  {w.message}
                 </div>
               ))}
             </div>
@@ -387,17 +469,13 @@ export default function ChefPage() {
 
           {/* Explanation */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-              Why These Changes?
-            </h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Why These Changes?</h3>
             <p className="text-sm text-gray-600 leading-relaxed">{result.explanation}</p>
           </div>
 
           {/* Transformed ingredients */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Final Ingredients
-            </h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Final Ingredients</h3>
             <ul className="space-y-2">
               {result.transformedIngredients.map((ing, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm">
@@ -425,9 +503,7 @@ export default function ChefPage() {
           {/* Instructions */}
           {result.instructions.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Instructions
-              </h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Instructions</h3>
               <ol className="space-y-3">
                 {result.instructions.map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
@@ -460,14 +536,10 @@ export default function ChefPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-
             {showDetails && (
               <div className="px-6 pb-6 space-y-5 border-t border-gray-50">
-                {/* Full scores */}
                 <div>
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-4 mb-3">
-                    Full Scores
-                  </h4>
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-4 mb-3">Full Scores</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <ScoreBadge label="Health" value={result.scores.health} />
                     <ScoreBadge label="Taste" value={result.scores.taste} />
@@ -475,8 +547,6 @@ export default function ChefPage() {
                     <ScoreBadge label="Budget" value={result.scores.budget} />
                   </div>
                 </div>
-
-                {/* Full nutrition */}
                 <div>
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
                     Full Nutrition (per serving, estimated)
@@ -500,8 +570,6 @@ export default function ChefPage() {
                     ))}
                   </div>
                 </div>
-
-                {/* Grocery items */}
                 {result.groceryItems.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
@@ -518,13 +586,9 @@ export default function ChefPage() {
                         </div>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                      Prices are rough estimates for demo purposes only.
-                    </p>
+                    <p className="text-xs text-gray-400 mt-2">Prices are rough estimates for demo purposes only.</p>
                   </div>
                 )}
-
-                {/* Missing info questions */}
                 {result.missingInfoQuestions.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
@@ -550,21 +614,138 @@ export default function ChefPage() {
             </div>
           )}
 
-          {/* Save recipe placeholder */}
-          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-5 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-gray-700">Save this recipe</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Saving to your Recipes tab and Grocery List is coming in the next phase.
-              </p>
+          {/* ── Save + feedback ────────────────────────────────────────────── */}
+          {saveStatus === "idle" && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Save this recipe</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Adds to your Recipes tab and Grocery List.
+                </p>
+              </div>
+              <button
+                onClick={handleSave}
+                className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+              >
+                Save Recipe
+              </button>
             </div>
-            <button
-              disabled
-              className="shrink-0 bg-gray-100 text-gray-400 font-semibold px-5 py-2.5 rounded-xl text-sm cursor-not-allowed"
-            >
-              Save Recipe
-            </button>
-          </div>
+          )}
+
+          {saveStatus === "saving" && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-3">
+              <svg className="animate-spin w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              <span className="text-sm text-gray-500">Saving…</span>
+            </div>
+          )}
+
+          {saveStatus === "saved" && (
+            <div className="space-y-3">
+              {/* Success banner */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-800">Recipe saved to Recipes and Grocery List.</p>
+                    <p className="text-xs text-emerald-600 mt-0.5">You can rate it and view it from the Recipes tab.</p>
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/recipes"
+                  className="shrink-0 text-sm font-semibold text-emerald-700 hover:text-emerald-800 border border-emerald-300 bg-white px-4 py-2 rounded-xl transition-colors"
+                >
+                  View Recipes →
+                </Link>
+              </div>
+
+              {/* Feedback form */}
+              {!feedbackSubmitted ? (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+                  <h3 className="text-sm font-semibold text-gray-700">Rate this recipe</h3>
+
+                  <div className="space-y-1">
+                    <p className="text-xs text-gray-500 font-medium">Overall rating</p>
+                    <StarRatingInput value={rating} onChange={setRating} />
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-gray-500 font-medium">Would you make this again?</p>
+                      <YesNoToggle
+                        value={feedback.wouldMakeAgain}
+                        onChange={(v) => setFeedback((f) => ({ ...f, wouldMakeAgain: v }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-gray-500 font-medium">Was this too expensive?</p>
+                      <YesNoToggle
+                        value={feedback.tooExpensive}
+                        onChange={(v) => setFeedback((f) => ({ ...f, tooExpensive: v }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-gray-500 font-medium">Was it easy to follow?</p>
+                      <YesNoToggle
+                        value={feedback.easyToFollow}
+                        onChange={(v) => setFeedback((f) => ({ ...f, easyToFollow: v }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-gray-500 font-medium">Were any swaps bad?</label>
+                    <input
+                      type="text"
+                      value={feedback.badSwaps}
+                      onChange={(e) => setFeedback((f) => ({ ...f, badSwaps: e.target.value }))}
+                      placeholder="Which ingredient swaps didn't work?"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition-colors"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-gray-500 font-medium">Notes (optional)</label>
+                    <textarea
+                      rows={2}
+                      value={feedback.notes}
+                      onChange={(e) => setFeedback((f) => ({ ...f, notes: e.target.value }))}
+                      placeholder="Any other thoughts?"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:bg-white transition-colors"
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleSubmitFeedback}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
+                    >
+                      Submit Feedback
+                    </button>
+                    <button
+                      onClick={() => setFeedbackSubmitted(true)}
+                      className="text-sm text-gray-400 hover:text-gray-600 px-3 py-2.5 transition-colors"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center gap-3 text-sm text-gray-500">
+                  <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Feedback saved. Thank you!
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

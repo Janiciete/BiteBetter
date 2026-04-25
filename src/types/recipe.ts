@@ -1,5 +1,46 @@
 import type { RecipeScores } from "./scores";
 
+export interface RecipeFeedback {
+  wouldMakeAgain: boolean | null;
+  badSwaps: string;
+  tooExpensive: boolean | null;
+  easyToFollow: boolean | null;
+  notes: string;
+}
+
+export interface SavedRecipe {
+  id: string;
+  savedAt: string;
+  originalRecipeName: string;
+  transformedRecipeName: string;
+  servings: number;
+  originalText: string;
+  transformedIngredients: TransformedIngredient[];
+  instructions: string[];
+  keyChanges: string[];
+  warnings: RecipeWarning[];
+  explanation: string;
+  beforeNutrition: NutritionEstimate;
+  afterNutrition: NutritionEstimate;
+  scores: RecipeScores;
+  groceryItems: GroceryItem[];
+  estimatedCost: number;
+  costPerServing: number;
+  disclaimerRequired: boolean;
+  missingInfoQuestions: string[];
+  rating?: number;
+  feedback?: RecipeFeedback;
+}
+
+export interface GroceryChecklistItem {
+  key: string;
+  name: string;
+  amounts: string[];
+  estimatedPrice: number;
+  recipeNames: string[];
+  checked: boolean;
+}
+
 export interface ParsedIngredient {
   raw: string;
   amount?: number;
