@@ -487,6 +487,8 @@ export default function WhyThisPage() {
               <p className="px-4 py-3 text-xs text-gray-400 border-t border-gray-50">
                 {selected.nutritionSource === "usda"
                   ? "Nutrition values use USDA FoodData Central where matches were available."
+                  : selected.nutritionSource === "fatsecret"
+                  ? "Nutrition values use FatSecret where matches were available."
                   : "Nutrition values are estimated from BiteBetter's demo nutrition rules."}
               </p>
             </div>

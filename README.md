@@ -232,3 +232,25 @@ Nutrition estimates use the [USDA FoodData Central API](https://fdc.nal.usda.gov
 4. Looked-up ingredient nutrition is cached in `localStorage` (`bitebetter_usda_cache`) to avoid redundant API calls.
 
 **Important:** `USDA_API_KEY` is read only in server-side API routes. Never use `NEXT_PUBLIC_` for this key.
+
+---
+
+## FatSecret Setup
+
+FatSecret is an optional second-tier nutrition source. It is used only when USDA cannot match enough ingredients. Static `nutrition-rules.json` remains the final fallback.
+
+1. Create a free developer account at [platform.fatsecret.com](https://platform.fatsecret.com/api/).
+
+2. Add to `.env.local`:
+   ```
+   FATSECRET_CLIENT_ID=your_client_id
+   FATSECRET_CLIENT_SECRET=your_client_secret
+   ```
+
+3. The app uses OAuth 2.0 client credentials flow automatically — no setup beyond adding the credentials.
+
+4. FatSecret lookups are cached in `localStorage` (`bitebetter_fatsecret_cache`) to avoid redundant API calls.
+
+**Nutrition source priority:** USDA → FatSecret → static `nutrition-rules.json`
+
+**Important:** `FATSECRET_CLIENT_ID` and `FATSECRET_CLIENT_SECRET` are read only in server-side API routes. Never use `NEXT_PUBLIC_` for these values.

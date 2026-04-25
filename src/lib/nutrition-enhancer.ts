@@ -1,5 +1,6 @@
 import type { TransformedRecipe, NutritionEstimate, ParsedIngredient } from "@/types/recipe";
 import { getBestUSDANutritionForIngredient } from "@/lib/usda-nutrition";
+import { getBestFatSecretNutritionForIngredient } from "@/lib/fatsecret-nutrition";
 
 // Same unit→grams table used in recipe-transformer
 const UNIT_GRAMS: Record<string, number> = {
@@ -15,12 +16,11 @@ function estimateGrams(ing: ParsedIngredient): number {
     const key = ing.unit.toLowerCase().replace(/s$/, "");
     return ing.amount * (UNIT_GRAMS[key] ?? UNIT_GRAMS[ing.unit.toLowerCase()] ?? 100);
   }
-  if (ing.amount && !ing.unit) return ing.amount * 80; // count-based (egg, onion…)
+  if (ing.amount && !ing.unit) return ing.amount * 80;
   return 100;
 }
 
-// Strip leading quantity/unit from a raw ingredient string to extract the food name.
-// e.g. "300g penne pasta" → "penne pasta"
+// Strip leading quantity/unit to extract a clean food name for API lookup.
 function extractItemFromRaw(raw: string): string {
   return raw
     .replace(/^[\d\s/½¼¾⅓⅔⅛⅜⅝⅞.]+/, "")
@@ -34,11 +34,11 @@ function extractItemFromRaw(raw: string): string {
     .toLowerCase();
 }
 
-async function computeNutrition(
+function computeNutritionSync(
   ingredients: ParsedIngredient[],
   nutritionMap: Map<string, NutritionEstimate>,
   servings: number
-): Promise<{ estimate: NutritionEstimate; matched: number }> {
+): { estimate: NutritionEstimate; matched: number } {
   let cal = 0, pro = 0, car = 0, fat = 0, fib = 0, sod = 0, sug = 0;
   let matched = 0;
 
@@ -46,8 +46,7 @@ async function computeNutrition(
     const data = nutritionMap.get(ing.item.toLowerCase().trim());
     if (!data) continue;
     matched++;
-    const grams = estimateGrams(ing);
-    const f = grams / 100;
+    const f = estimateGrams(ing) / 100;
     cal += data.calories * f;
     pro += data.protein_g * f;
     car += data.carbs_g * f;
@@ -72,68 +71,104 @@ async function computeNutrition(
   };
 }
 
+// Build the after-ingredient list from the transformed recipe.
+function buildAfterIngredients(recipe: TransformedRecipe): {
+  afterIngredients: ParsedIngredient[];
+  extraNames: string[];
+} {
+  const extraNames: string[] = [];
+  const afterIngredients: ParsedIngredient[] = recipe.transformedIngredients.map((t, i) => {
+    const orig = recipe.originalIngredients[i];
+    if (!t.changed) return orig;
+    const item = extractItemFromRaw(t.transformed);
+    extraNames.push(item);
+    return { ...orig, item };
+  });
+  return { afterIngredients, extraNames };
+}
+
+// Attempt to build a nutrition map by fetching all unique ingredient names in parallel.
+async function buildNutritionMap(
+  names: string[],
+  fetcher: (name: string) => Promise<{ nutritionPer100g?: NutritionEstimate; nutritionEstimate?: NutritionEstimate } | null>
+): Promise<Map<string, NutritionEstimate>> {
+  const results = await Promise.allSettled(
+    names.map((name) => fetcher(name).then((data) => ({ name, data })))
+  );
+  const map = new Map<string, NutritionEstimate>();
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value.data) {
+      const nutrition = r.value.data.nutritionPer100g ?? r.value.data.nutritionEstimate;
+      if (nutrition) map.set(r.value.name, nutrition);
+    }
+  }
+  return map;
+}
+
 export async function enhanceRecipeNutritionWithUSDA(
   recipe: TransformedRecipe
-): Promise<{ recipe: TransformedRecipe; usedUSDA: boolean }> {
-  const fallback = { recipe, usedUSDA: false };
+): Promise<{ recipe: TransformedRecipe; nutritionSource: "usda" | "fatsecret" | "static" }> {
+  const fallback = { recipe, nutritionSource: "static" as const };
 
   try {
-    // Build the full set of item names to look up:
-    //   • all original ingredient items (for beforeNutrition)
-    //   • extracted names from changed transformed strings (for afterNutrition)
-    const lookupNames = new Set<string>();
+    const { afterIngredients, extraNames } = buildAfterIngredients(recipe);
 
-    for (const ing of recipe.originalIngredients) {
-      lookupNames.add(ing.item.toLowerCase().trim());
-    }
-
-    // Build the "after" ingredient list in ParsedIngredient shape
-    const afterIngredients: ParsedIngredient[] = recipe.transformedIngredients.map((t, i) => {
-      const orig = recipe.originalIngredients[i];
-      if (!t.changed) return orig;
-      const item = extractItemFromRaw(t.transformed);
-      lookupNames.add(item);
-      return { ...orig, item };
-    });
-
-    // Fetch all USDA entries in parallel
-    const names = Array.from(lookupNames);
-    const entries = await Promise.allSettled(
-      names.map((name) =>
-        getBestUSDANutritionForIngredient(name).then((data) => ({ name, data }))
-      )
+    const allNames = Array.from(
+      new Set([
+        ...recipe.originalIngredients.map((i) => i.item.toLowerCase().trim()),
+        ...extraNames,
+      ])
     );
 
-    // Build a map: item name → NutritionEstimate per 100g
-    const nutritionMap = new Map<string, NutritionEstimate>();
-    for (const result of entries) {
-      if (result.status === "fulfilled" && result.value.data) {
-        nutritionMap.set(result.value.name, result.value.data.nutritionPer100g);
+    // ── Tier 1: USDA ───────────────────────────────────────��─────────────
+    try {
+      const usdaMap = await buildNutritionMap(allNames, getBestUSDANutritionForIngredient);
+
+      const usdaMatchCount = recipe.originalIngredients.filter((ing) =>
+        usdaMap.has(ing.item.toLowerCase().trim())
+      ).length;
+
+      if (usdaMatchCount >= 2) {
+        const { estimate: beforeNutrition } = computeNutritionSync(
+          recipe.originalIngredients, usdaMap, recipe.servings
+        );
+        const { estimate: afterNutrition } = computeNutritionSync(
+          afterIngredients, usdaMap, recipe.servings
+        );
+        return {
+          recipe: { ...recipe, beforeNutrition, afterNutrition },
+          nutritionSource: "usda",
+        };
       }
+    } catch {
+      // USDA failed — fall through to FatSecret
     }
 
-    // Need at least 2 ingredient matches to trust the result
-    const previewMatchCount = recipe.originalIngredients.filter((ing) =>
-      nutritionMap.has(ing.item.toLowerCase().trim())
-    ).length;
-    if (previewMatchCount < 2) return fallback;
+    // ── Tier 2: FatSecret ─────────────────────────────────────────────────
+    try {
+      const fsMap = await buildNutritionMap(allNames, getBestFatSecretNutritionForIngredient);
 
-    const { estimate: beforeNutrition } = await computeNutrition(
-      recipe.originalIngredients,
-      nutritionMap,
-      recipe.servings
-    );
+      const fsMatchCount = recipe.originalIngredients.filter((ing) =>
+        fsMap.has(ing.item.toLowerCase().trim())
+      ).length;
 
-    const { estimate: afterNutrition } = await computeNutrition(
-      afterIngredients,
-      nutritionMap,
-      recipe.servings
-    );
+      if (fsMatchCount >= 2) {
+        const { estimate: beforeNutrition } = computeNutritionSync(
+          recipe.originalIngredients, fsMap, recipe.servings
+        );
+        const { estimate: afterNutrition } = computeNutritionSync(
+          afterIngredients, fsMap, recipe.servings
+        );
+        return {
+          recipe: { ...recipe, beforeNutrition, afterNutrition },
+          nutritionSource: "fatsecret",
+        };
+      }
+    } catch {
+      // FatSecret failed — fall through to static
+    }
 
-    return {
-      recipe: { ...recipe, beforeNutrition, afterNutrition },
-      usedUSDA: true,
-    };
+    return fallback;
   } catch {
     return fallback;
   }

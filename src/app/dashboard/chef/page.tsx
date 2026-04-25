@@ -219,7 +219,6 @@ export default function ChefPage() {
   const [recipeText, setRecipeText] = useState("");
   const [result, setResult] = useState<TransformedRecipe | null>(null);
   const [usedClaude, setUsedClaude] = useState<boolean | null>(null);
-  const [usedUSDA, setUsedUSDA] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -253,7 +252,6 @@ export default function ChefPage() {
     setError(null);
     setResult(null);
     setUsedClaude(null);
-    setUsedUSDA(null);
     setShowDetails(false);
     setSaveStatus("idle");
     setSavedRecipeId(null);
@@ -268,24 +266,20 @@ export default function ChefPage() {
       const parsed = parseRecipe(recipeText);
       const ruleBasedResult = transformRecipe(recipeText, parsed, profile);
 
-      // USDA nutrition enhancement (silent fallback)
-      const { recipe: usdaEnhanced, usedUSDA: didUseUSDA } =
+      // External nutrition enhancement: USDA → FatSecret → static fallback
+      const { recipe: enhanced, nutritionSource } =
         await enhanceRecipeNutritionWithUSDA(ruleBasedResult);
-      setUsedUSDA(didUseUSDA);
 
-      // Claude enhancement (uses USDA-enhanced nutrition as input)
+      // Claude enhancement (uses externally-enhanced nutrition as input)
       const claudeResult = await transformRecipeWithClaude({
         rawRecipeText: recipeText,
         parsedRecipe: parsed,
         userProfile: profile,
-        ruleBasedResult: usdaEnhanced,
+        ruleBasedResult: enhanced,
       });
 
-      const base = claudeResult ?? usdaEnhanced;
-      const finalResult: TransformedRecipe = {
-        ...base,
-        nutritionSource: didUseUSDA ? "usda" : "static",
-      };
+      const base = claudeResult ?? enhanced;
+      const finalResult: TransformedRecipe = { ...base, nutritionSource };
       setUsedClaude(claudeResult !== null);
       setResult(finalResult);
       setTimeout(
@@ -422,12 +416,17 @@ export default function ChefPage() {
                     Rule-based fallback
                   </span>
                 )}
-                {usedUSDA === true && (
+                {result.nutritionSource === "usda" && (
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">
                     USDA nutrition
                   </span>
                 )}
-                {usedUSDA === false && (
+                {result.nutritionSource === "fatsecret" && (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                    FatSecret nutrition
+                  </span>
+                )}
+                {(!result.nutritionSource || result.nutritionSource === "static") && (
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
                     Estimated nutrition
                   </span>
