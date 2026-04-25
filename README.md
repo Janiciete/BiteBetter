@@ -4,6 +4,21 @@ A personalized recipe transformation app. Paste any recipe, and BetterBites rewr
 
 ---
 
+## Project Description
+
+Our project is a recipe transformation website that helps users make personalized versions of recipes they find based on their nutrition goals, dietary restrictions, and personal preferences. It is tailored to all adults, including the elderly and pregnant women. Users first create a profile with important nutrition-related information, such as BMI, allergies, health goals, medical history, food preferences, and budget. Then, they can input a recipe (personal or something they found on the internet), and the platform uses AI to analyze the ingredients, suggest personalized substitutions, provide nutrition information, generate a modified recipe, and grocery list. Users are also able to rate the recipes they try. These ratings help the platform understand what the user likes and dislikes. Over time, the AI uses this past feedback and recipe data to generate better recipe recommendations that are more personalized and tailored to each user’s taste, goals, and dietary needs.
+The website can be especially helpful for people who struggle with strict diets, such as patients managing diabetes, high blood pressure, high cholesterol, food allergies, or weight-related health goals. Many patients are told what they “should” eat, but they are not always given practical recipes that match their taste, budget, culture, or lifestyle. It does not shame users for their food choices. Instead, it helps them find realistic meals they would actually enjoy. It can scale to many users because profiles, recipe ratings, and AI-generated recommendations can improve over time. It can also expand to more dietary categories, languages, cultures, grocery stores, and healthcare settings. 
+Our platform helps bridge that gap by turning health recommendations into realistic meal suggestions. Hospitals, doctors, dietitians, and caregivers could also use this website as a supportive tool when helping patients make better food choices. For example, if a patient dislikes certain foods, follows religious/cultural diets, needs to lose/gain weight, or needs low-sodium or low-sugar meals, the platform can suggest personalized recipes that fit those needs. This can make medical nutrition advice easier to follow and more patient-centered. 
+The website is designed to be easy to use, especially for elderly users, with clear navigation, simple buttons, and a clean layout. Recipes can also be saved and archived so users can return to them later. Recipes can then be “added to cart” within a different tab and put into a grocery checklist. The progress can be monitored through a bar at the top of the page. 
+Importantly, this website is not meant to replace doctors, dietitians, or medical diagnoses. Instead, it supports healthcare professionals by helping translate dietary guidance into meal ideas that patients can actually use. For risky medical conditions, allergies, pregnancy, eating disorders, or major diet changes, users should always consult a doctor or licensed dietitian
+
+---
+
+## Set up instructions 
+
+Clone the repository, install dependencies with npm install, then create a local .env.local file based on .env.example. The app expects environment variables for Supabase, Claude, USDA, and FatSecret, including NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, ANTHROPIC_API_KEY, USDA_API_KEY, FATSECRET_CLIENT_ID, and FATSECRET_CLIENT_SECRET. Run the app locally with npm run dev, or build it with npm run build. You also need to create the Supabase tables for profiles and recipes before cloud sync will work.
+
+---
 ## What It Does
 
 Users create a nutrition profile once. Then, in the Chef tab, they paste or type any recipe. The app transforms it into a personalized version and shows a simplified result — ingredient swaps, before/after nutrition, scores, cost summary, and safety warnings. Transformed recipes can be saved, rated, and aggregated into a grocery list.
