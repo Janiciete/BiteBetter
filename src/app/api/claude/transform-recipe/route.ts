@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { TransformedRecipe, TransformedIngredient, RecipeWarning } from "@/types/recipe";
 import type { UserProfile } from "@/types/profile";
 import type { ParsedRecipe } from "@/types/recipe";
+import { isDessertOrBakingRecipe } from "@/lib/recipe-transformer";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -53,8 +54,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, reason: "invalid_request" });
   }
 
-  const { rawRecipeText, userProfile, ruleBasedResult } = body;
+  const { rawRecipeText, parsedRecipe, userProfile, ruleBasedResult } = body;
 
+  const isBaking = isDessertOrBakingRecipe(parsedRecipe);
   const profileSummary = buildProfileSummary(userProfile);
 
   const changedIngredients = ruleBasedResult.transformedIngredients
@@ -84,8 +86,23 @@ Nutrition per serving (before → after):
   Added sugar: ${b.added_sugar_g} → ${a.added_sugar_g} g
   Fiber: ${b.fiber_g} → ${a.fiber_g} g`;
 
+  const bakingGuidance = isBaking
+    ? `
+BAKING / DESSERT RECIPE — extra rules:
+- Make meaningful improvements beyond the rule-based result. Do not simply restate what was already changed.
+- Sugar: if not already reduced, consider reducing granulated or brown sugar by 20–30%; mention monk fruit or coconut sugar as optional swaps. Powdered sugar in frosting can drop 25–35%.
+- Frosting: lighten by replacing some butter with Greek yogurt or reduced-fat cream cheese (unless dairy-free). Reduce powdered sugar. Suggest a smaller amount or yogurt-based glaze if frosting is very heavy.
+- Fat (butter/oil): if not already addressed, suggest replacing 25–50% of butter with unsweetened applesauce or mashed banana in moisture-tolerant recipes. Keep enough fat for structure.
+- Flour: if the user has heart-health or weight-loss goals and is not gluten-free, suggest replacing half the all-purpose flour with whole-wheat pastry flour for added fiber, noting it may slightly darken the crumb.
+- Nut allergy: if the user has a tree nut or peanut allergy, replace all nuts and nut products with pumpkin seeds, sunflower seeds, or simply omit. Never suggest almond flour if nut allergy is present.
+- Pregnancy food safety: avoid raw or undercooked eggs in frosting, batter, or fillings. Suggest pasteurized eggs or egg-free alternatives. Avoid unpasteurized cheeses. Do not suggest alcohol in any form.
+- Preserve baking feasibility: do not remove all fat, all sugar, or all binding agents at once — baked goods need structure, moisture, and sweetness to succeed.
+- Never undo a substitution that was already made for an allergy or safety reason.`
+    : "";
+
   const systemPrompt = `You are a professional recipe transformation assistant for BetterBites, a personalized nutrition app.
 Improve the rule-based recipe transformation provided to make it more helpful, natural, and aligned with the user's profile.
+Go beyond restating what the rule-based engine already did — find additional meaningful improvements the rules may have missed.
 
 You MUST return ONLY a valid JSON object — no markdown, no code fences, no extra text.
 
@@ -112,7 +129,7 @@ Rules you must follow:
 - Keep keyChanges to 3–5 concise bullet-style strings.
 - Keep explanation to 2–4 sentences.
 - additionalWarnings is for genuinely new warnings only — leave it empty if none are needed.
-- Instructions must reflect substituted ingredients.`;
+- Instructions must reflect substituted ingredients.${bakingGuidance}`;
 
   let rawContent: string;
   try {
