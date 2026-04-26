@@ -111,7 +111,7 @@
   },
   {
     "id": "black_beans",
-    "keywords": ["black beans", "kidney beans", "pinto beans", "beans"],
+    "keywords": ["black beans", "kidney beans", "pinto beans", "white beans", "cannellini", "white bean", "navy beans", "navy bean", "beans"],
     "calories_per_100g": 127,
     "protein_g": 9,
     "carbs_g": 23,
@@ -441,7 +441,7 @@
   },
   {
     "id": "mushrooms",
-    "keywords": ["mushrooms", "mushroom", "cremini", "portobello", "shiitake"],
+    "keywords": ["mushrooms", "mushroom", "cremini", "portobello", "shiitake", "wild mushrooms", "wild mushroom", "brown mushrooms", "brown mushroom", "oyster mushroom", "oyster mushrooms", "king trumpet", "porcini", "enoki", "chanterelle", "maitake", "button mushroom"],
     "calories_per_100g": 22,
     "protein_g": 3.1,
     "carbs_g": 3.3,
@@ -459,6 +459,171 @@
     "fat_g": 0.3,
     "fiber_g": 2.1,
     "sodium_mg": 4,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "miso_paste",
+    "keywords": ["miso paste", "miso"],
+    "calories_per_100g": 200,
+    "protein_g": 11,
+    "carbs_g": 27,
+    "fat_g": 6,
+    "fiber_g": 5,
+    "sodium_mg": 3600,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "miso_blend_diluted",
+    "keywords": ["miso paste mixed with"],
+    "calories_per_100g": 120,
+    "protein_g": 7,
+    "carbs_g": 16,
+    "fat_g": 4,
+    "fiber_g": 3,
+    "sodium_mg": 2200,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "coconut_aminos",
+    "keywords": ["coconut aminos"],
+    "calories_per_100g": 44,
+    "protein_g": 0,
+    "carbs_g": 10,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 690,
+    "added_sugar_g": 10
+  },
+  {
+    "id": "rice_vinegar",
+    "keywords": ["rice vinegar", "rice wine vinegar"],
+    "calories_per_100g": 18,
+    "protein_g": 0,
+    "carbs_g": 0.6,
+    "fat_g": 0,
+    "fiber_g": 0,
+    "sodium_mg": 2,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "sesame_oil",
+    "keywords": ["sesame oil", "toasted sesame oil"],
+    "calories_per_100g": 884,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 100,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "avocado_oil",
+    "keywords": ["avocado oil"],
+    "calories_per_100g": 884,
+    "protein_g": 0,
+    "carbs_g": 0,
+    "fat_g": 100,
+    "fiber_g": 0,
+    "sodium_mg": 0,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "green_onions",
+    "keywords": ["green onions", "green onion", "scallions", "scallion", "spring onion", "chopped green onions"],
+    "calories_per_100g": 32,
+    "protein_g": 1.8,
+    "carbs_g": 7.3,
+    "fat_g": 0.2,
+    "fiber_g": 2.6,
+    "sodium_mg": 16,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "sesame_seeds",
+    "keywords": ["sesame seeds", "sesame seed", "toasted sesame seeds", "toasted sesame"],
+    "calories_per_100g": 573,
+    "protein_g": 18,
+    "carbs_g": 23,
+    "fat_g": 50,
+    "fiber_g": 12,
+    "sodium_mg": 11,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "black_pepper",
+    "keywords": ["black pepper", "pepper", "ground pepper"],
+    "calories_per_100g": 251,
+    "protein_g": 10,
+    "carbs_g": 64,
+    "fat_g": 3,
+    "fiber_g": 25,
+    "sodium_mg": 20,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "maple_syrup",
+    "keywords": ["maple syrup", "pure maple syrup"],
+    "calories_per_100g": 260,
+    "protein_g": 0,
+    "carbs_g": 67,
+    "fat_g": 0.1,
+    "fiber_g": 0,
+    "sodium_mg": 9,
+    "added_sugar_g": 65
+  },
+  {
+    "id": "eggplant",
+    "keywords": ["eggplant", "aubergine"],
+    "calories_per_100g": 25,
+    "protein_g": 1,
+    "carbs_g": 6,
+    "fat_g": 0.2,
+    "fiber_g": 3,
+    "sodium_mg": 2,
+    "added_sugar_g": 2.4
+  },
+  {
+    "id": "zucchini",
+    "keywords": ["zucchini", "courgette", "zucchini and mixed vegetables"],
+    "calories_per_100g": 17,
+    "protein_g": 1.2,
+    "carbs_g": 3.1,
+    "fat_g": 0.3,
+    "fiber_g": 1,
+    "sodium_mg": 8,
+    "added_sugar_g": 2.5
+  },
+  {
+    "id": "cauliflower",
+    "keywords": ["cauliflower"],
+    "calories_per_100g": 25,
+    "protein_g": 1.9,
+    "carbs_g": 5,
+    "fat_g": 0.3,
+    "fiber_g": 2,
+    "sodium_mg": 30,
+    "added_sugar_g": 2
+  },
+  {
+    "id": "vegetable_broth",
+    "keywords": ["vegetable broth", "vegetable stock", "veggie broth", "vegetable broth or stock"],
+    "calories_per_100g": 7,
+    "protein_g": 0.3,
+    "carbs_g": 1,
+    "fat_g": 0.1,
+    "fiber_g": 0,
+    "sodium_mg": 400,
+    "added_sugar_g": 0
+  },
+  {
+    "id": "jackfruit",
+    "keywords": ["jackfruit", "young jackfruit"],
+    "calories_per_100g": 95,
+    "protein_g": 1.7,
+    "carbs_g": 23,
+    "fat_g": 0.6,
+    "fiber_g": 1.5,
+    "sodium_mg": 2,
     "added_sugar_g": 0
   }
 ]
